@@ -47,7 +47,7 @@ validation_one_hot = list()
 
 create_sentence_list(validation_data, validation_sentence_list)
 validation_one_hot = create_one_hot(train_word_list, validation_one_hot, validation_sentence_list)
-
+#写错了，接下来要把word_list合并
 
 #相似度
 #save distance between validation_data and train_data
