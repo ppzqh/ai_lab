@@ -4,9 +4,6 @@ import math
 import warnings
 warnings.filterwarnings("ignore")
 
-train_data = pd.read_csv('/Users/pp/pp_git/ai_lab/exp1/lab1_data/classification_dataset/train_set.csv')
-validation_data = pd.read_csv('/Users/pp/pp_git/ai_lab/exp1/lab1_data/classification_dataset/validation_set.csv')
-
 def create_sentence_list(data, sentence_list):
 	for sentence in data['Words (split by space)']:
 		sentence_list.append(sentence.split())
@@ -31,6 +28,22 @@ def create_one_hot(word_list, one_hot, sentence_list):
 		one_hot.append( list(tmp_one_hot) )
 	return np.array(one_hot)
 
+def get(index_list, validation_index, accuracy_list, k):
+	label_dict = {}
+	for i in range(0, k):
+		if train_data['label'][index_list[i]] not in label_dict:
+			label_dict[train_data['label'][index_list[i]]] = 1
+		else:
+			label_dict[train_data['label'][index_list[i]]] += 1
+	#predict via K value
+	prediction = max(label_dict,key=label_dict.get)
+	correct_answer = validation_data['label'][validation_index]
+	if prediction == correct_answer:
+		accuracy_list[k] += 1
+        
+train_data = pd.read_csv('/Users/pp/pp_git/ai_lab/exp1/lab1_data/classification_dataset/train_set.csv')
+validation_data = pd.read_csv('/Users/pp/pp_git/ai_lab/exp1/lab1_data/classification_dataset/validation_set.csv')
+
 #train_data process
 train_word_list = list()
 train_sentence_list = list()
@@ -53,8 +66,8 @@ for word in validation_word_list:
 		word_list.append(word)
 
 #create one-hot
-create_one_hot(word_list, train_one_hot, train_sentence_list)			#train_one-hot
-create_one_hot(word_list, validation_one_hot, validation_sentence_list) #validation_one-hot
+train_one_hot = create_one_hot(word_list, train_one_hot, train_sentence_list)			#train_one-hot
+validation_one_hot = create_one_hot(word_list, validation_one_hot, validation_sentence_list) #validation_one-hot
 
 #相似度
 #save distance between validation_data and train_data
@@ -64,20 +77,6 @@ for i in range(len(validation_one_hot)):
 	for j in range(len(train_one_hot)):
 		tmp_distance.append(math.sqrt(np.sum( (train_one_hot[j] - validation_one_hot[i])**2 )))
 	distance_list.append(list(tmp_distance))
-
-def get(index_list, validation_index, accuracy_list, k):
-	label_dict = {}
-	for i in range(0, k):
-		if train_data['label'][index_list[i]] not in label_dict:
-			label_dict[train_data['label'][index_list[i]]] = 1
-		else:
-			label_dict[train_data['label'][index_list[i]]] += 1
-	#predict via K value
-	prediction = max(label_dict,key=label_dict.get)
-	correct_answer = validation_data['label'][validation_index]
-	if prediction == correct_answer:
-		print('1')
-		accuracy_list[k] += 1
 
 #determine the best value of K
 #index_list
