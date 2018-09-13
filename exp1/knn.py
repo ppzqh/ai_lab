@@ -35,19 +35,26 @@ def create_one_hot(word_list, one_hot, sentence_list):
 train_word_list = list()
 train_sentence_list = list()
 train_one_hot = list()
-
 create_sentence_list(train_data, train_sentence_list)
 create_word_list(train_word_list, train_sentence_list)
-train_one_hot = create_one_hot(train_word_list, train_one_hot, train_sentence_list)
 
 #validation_data process
 validation_word_list = list()
 validation_sentence_list = list()
 validation_one_hot = list()
-
 create_sentence_list(validation_data, validation_sentence_list)
-validation_one_hot = create_one_hot(train_word_list, validation_one_hot, validation_sentence_list)
+create_word_list(validation_word_list, validation_sentence_list)
+
 #写错了，接下来要把word_list合并
+#join word list
+word_list = train_word_list
+for word in validation_word_list:
+	if word not in word_list:
+		word_list.append(word)
+
+#create one-hot
+create_one_hot(word_list, train_one_hot, train_sentence_list)			#train_one-hot
+create_one_hot(word_list, validation_one_hot, validation_sentence_list) #validation_one-hot
 
 #相似度
 #save distance between validation_data and train_data
@@ -58,9 +65,33 @@ for i in range(len(validation_one_hot)):
 		tmp_distance.append(math.sqrt(np.sum( (train_one_hot[j] - validation_one_hot[i])**2 )))
 	distance_list.append(list(tmp_distance))
 
+def get(index_list, validation_index, accuracy_list, k):
+	label_dict = {}
+	for i in range(0, k):
+		if train_data['label'][index_list[i]] not in label_dict:
+			label_dict[train_data['label'][index_list[i]]] = 1
+		else:
+			label_dict[train_data['label'][index_list[i]]] += 1
+	#predict via K value
+	prediction = max(label_dict,key=label_dict.get)
+	correct_answer = validation_data['label'][validation_index]
+	if prediction == correct_answer:
+		print('1')
+		accuracy_list[k] += 1
+
 #determine the best value of K
 #index_list
-index_list = np.argsort(distance_list[0])
-def get_K(distance_list, k):
+k = len(train_one_hot)
+accuracy_list = list( 0 for i in range(k) )
+
+for validation_index in range( len(distance_list) ):
+	index_list = np.argsort(distance_list[validation_index])
+	#get(index_list, validation_index, accuracy_list, 1)
+	#0-k进行预测
+	for i in range(1, k):
+		get(index_list, validation_index, accuracy_list, i)
+		break
+total = len(validation_one_hot)
+#accuracy_list = [float(i)/total for i in accuracy_list]
 
 
