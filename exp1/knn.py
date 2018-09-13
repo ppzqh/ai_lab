@@ -88,10 +88,9 @@ for validation_index in range( len(distance_list) ):
 	index_list = np.argsort(distance_list[validation_index])
 	#get(index_list, validation_index, accuracy_list, 1)
 	#0-k进行预测
-	for i in range(1, k):
+	for i in range( 1, int(math.sqrt(k)) ):
 		get(index_list, validation_index, accuracy_list, i)
-		break
 total = len(validation_one_hot)
-#accuracy_list = [float(i)/total for i in accuracy_list]
+accuracy_list = [float(i)/total for i in accuracy_list]
 
 
