@@ -28,6 +28,14 @@ def create_one_hot(word_list, one_hot, sentence_list):
 		one_hot.append( list(tmp_one_hot) )
 	return np.array(one_hot)
 
+def calculate_distance(distance_list, validation_one_hot, train_one_hot):
+	for i in range(len(validation_one_hot)):
+		tmp_distance = list()
+		for j in range(len(train_one_hot)):
+			#distance calculating method
+			tmp_distance.append(math.sqrt(np.sum( (train_one_hot[j] - validation_one_hot[i])**2 )))
+		distance_list.append(list(tmp_distance))
+'''
 def get(index_list, validation_index, accuracy_list, k):
 	label_dict = {}
 	for i in range(0, k):
@@ -91,5 +99,64 @@ for validation_index in range( len(distance_list) ):
 		get(index_list, validation_index, accuracy_list, i)
 total = len(validation_one_hot)
 accuracy_list = [float(i)/total for i in accuracy_list]
+'''
+
+#KNN regression
+def create_probability_list(data, probability_list):
+    for i in range(len(data)):
+        tmp_probability = list(data.iloc[i][1:])
+        probability_list.append(tmp_probability)
+    return np.array(probability_list)
+
+train_data = pd.read_csv('/Users/pp/pp_git/ai_lab/exp1/lab1_data/regression_dataset/train_set.csv')
+validation_data = pd.read_csv('/Users/pp/pp_git/ai_lab/exp1/lab1_data/regression_dataset/validation_set.csv')
+
+#train_data process
+train_word_list = list()
+train_sentence_list = list()
+train_one_hot = list()
+train_probability_list = list()
+create_sentence_list(train_data, train_sentence_list)
+create_word_list(train_word_list, train_sentence_list)
+train_probability_list = create_probability_list(train_data, train_probability_list)
+
+#validation_data process
+validation_word_list = list()
+validation_sentence_list = list()
+validation_one_hot = list()
+validation_probability_list = list()
+create_sentence_list(validation_data, validation_sentence_list)
+create_word_list(validation_word_list, validation_sentence_list)
+#create_probability_list(validation_data, validation_probability_list)
+
+#join word list
+word_list = train_word_list
+for word in validation_word_list:
+	if word not in word_list:
+		word_list.append(word)
+
+train_one_hot= create_one_hot(word_list, train_one_hot, train_sentence_list)
+validation_one_hot = create_one_hot(word_list, validation_one_hot, validation_sentence_list)
+
+distance_list = list()
+calculate_distance(distance_list, validation_one_hot, train_one_hot)
+
+#找k个最近的，并对可能性进行平均
+k = 10
+pridict_probability_list = list()
+
+def get(index_list, validation_index, probability_list, distance, k):
+	pridict_probability = np.zeros(len(train_probability_list[0]))
+	for i in range(k):
+		pridict_probability += (probability_list[i]/distance_list[validation_index][i])
+	#归一化
+	tmp_sum = sum(pridict_probability)
+	pridict_probability /= tmp_sum
+	return pridict_probability
+
+for validation_index in range( len(distance_list) ):
+	index_list = np.argsort(distance_list[validation_index])
+	pridict_probability_list.append(get(index_list, validation_index, train_probability_list, distance_list[validation_index], k))
+	break
 
 
