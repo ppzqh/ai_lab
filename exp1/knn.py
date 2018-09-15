@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 import math
-import warnings
-warnings.filterwarnings("ignore")
 
 def create_sentence_list(data, sentence_list):
 	for sentence in data['Words (split by space)']:
@@ -101,6 +99,7 @@ total = len(validation_one_hot)
 accuracy_list = [float(i)/total for i in accuracy_list]
 '''
 
+
 #KNN regression
 def create_probability_list(data, probability_list):
     for i in range(len(data)):
@@ -127,7 +126,7 @@ validation_one_hot = list()
 validation_probability_list = list()
 create_sentence_list(validation_data, validation_sentence_list)
 create_word_list(validation_word_list, validation_sentence_list)
-#create_probability_list(validation_data, validation_probability_list)
+validation_probability_list = create_probability_list(validation_data, validation_probability_list)
 
 #join word list
 word_list = train_word_list
@@ -142,21 +141,52 @@ distance_list = list()
 calculate_distance(distance_list, validation_one_hot, train_one_hot)
 
 #找k个最近的，并对可能性进行平均
-k = 10
-pridict_probability_list = list()
+predict_probability_list = list()
 
 def get(index_list, validation_index, probability_list, distance, k):
-	pridict_probability = np.zeros(len(train_probability_list[0]))
-	for i in range(k):
-		pridict_probability += (probability_list[i]/distance_list[validation_index][i])
-	#归一化
-	tmp_sum = sum(pridict_probability)
-	pridict_probability /= tmp_sum
-	return pridict_probability
+		predict_probability = np.zeros(len(train_probability_list[0]))
+		for i in range(k):
+			predict_probability += (probability_list[index_list[i]]/distance_list[validation_index][index_list[i]] + 1)
+		#归一化
+		tmp_sum = sum(predict_probability)
+		predict_probability /= tmp_sum
+		return predict_probability
 
+def get_best_k(min_corr, best_k, k):
+	predict_probability_list = list()
+	for validation_index in range( len(distance_list) ):
+		index_list = np.argsort(distance_list[validation_index])
+		predict_probability_list.append(get(index_list, validation_index, train_probability_list, distance_list[validation_index], k))
+	#计算相关系数
+	cov_list = list()
+	predict_probability_list = np.array(predict_probability_list)
+
+	#对概率向量进行处理
+	a = predict_probability_list[:,0]
+	b = validation_probability_list[:,0]
+	nan_a = np.isnan(a)
+	a[nan_a] = 0
+	nan_b = np.isnan(b)
+	b[nan_b] = 0
+
+	#计算相关系数
+	tmp = np.cov(a,b)[0][1] /(np.var(a)*np.var(b))
+	#print(tmp)
+	if abs(tmp) < min_corr:
+		min_corr = abs(tmp)
+		best_k = k
+		print(tmp)
+	return min_corr, best_k
+
+best_k = 1
+min_corr = 20
+for i in range(1, 20):
+	min_corr, best_k = get_best_k(min_corr, best_k, i)
+
+predict_probability_list = list()
 for validation_index in range( len(distance_list) ):
 	index_list = np.argsort(distance_list[validation_index])
-	pridict_probability_list.append(get(index_list, validation_index, train_probability_list, distance_list[validation_index], k))
-	break
+	predict_probability_list.append(get(index_list, validation_index, train_probability_list, distance_list[validation_index], best_k))
+print(predict_probability_list)
 
 
