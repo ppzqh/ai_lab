@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 f = open('lab1_data/semeval.txt')
 #word_dict = dict()
@@ -47,10 +48,17 @@ IDF = np.array(word_count)
 IDF = np.log( sentence_list_len/(IDF+1) )
 TF_IDF = TF * IDF
 
-#write output file
-TFIDF_file = open('TFIDF.txt','w')
-print(type(TF_IDF))
-#TFIDF_file.write()
+result = list()
+#去除零
+for row_index in range(len(TF_IDF)):
+	tmp = list()
+	for i in range(len(TF_IDF[row_index])):
+		if TF_IDF[row_index][i] != 0:
+			tmp.append(TF_IDF[row_index][i])
+	result.append(tmp)
+
+result = pd.DataFrame(result)
+result.to_csv('TFIDF.csv', index=range(len(TF_IDF)))
 
 
 
