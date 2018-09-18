@@ -3,31 +3,34 @@ import pandas as pd
 import math
 import csv
 
-#处理得到句子集
-def create_sentence_list(data, sentence_list):
-	for sentence in data['Words (split by space)']:
-		sentence_list.append(sentence.split())
+train_data = pd.read_csv('lab1_data/regression_dataset/train_set.csv')
+validation_data = pd.read_csv('lab1_data/regression_dataset/validation_set.csv')
+test_data = pd.read_csv('lab1_data/regression_dataset/test_set.csv')
 
-#处理得到单词集
-def create_word_list(word_list, sentence_list):
-	for sentence in sentence_list:
-		for word in sentence:
+def create_word_list(word_list, data):
+	for sentence in data['Words (split by space)']:
+		for word in sentence.split(' '):
 			if word not in word_list:
 				word_list.append(word)
 
+def join_word_list(word_list1, word_list2):
+	word_list = list(word_list1)
+	for word in word_list2:
+		if word not in word_list:
+			word_list.append(word)
+	return word_list
+
 #处理得到one-hot矩阵
-def create_one_hot(word_list, one_hot, sentence_list):
+def create_one_hot(word_list, data):
 	word_list_len = len(word_list)
-
+	one_hot = list()
 	#create one-hot
-	for sentence in sentence_list:
-		tmp_one_hot = list( 0 for i in range(word_list_len) )
-
-		for word in sentence:
+	for sentence in data['Words (split by space)']:
+		tmp_one_hot = np.zeros(word_list_len)
+		for word in sentence.split(' '):
 			if word in word_list:
-				tmp_one_hot[word_list.index(word)] += 1
-		
-		one_hot.append( list(tmp_one_hot) )
+				tmp_one_hot[word_list.index(word)] = 1
+		one_hot.append(tmp_one_hot)
 	return np.array(one_hot)
 
 #计算两集合之间的距离
@@ -85,37 +88,25 @@ def get_best_k(min_corr, best_k, k):
 #计算最优的k
 #############################################
 #KNN regression
-train_data = pd.read_csv('lab1_data/regression_dataset/train_set.csv')
-validation_data = pd.read_csv('lab1_data/regression_dataset/validation_set.csv')
 emotion_list = list(train_data.iloc[0].index[1:])
-
 
 #train_data process
 train_word_list = list()
-train_sentence_list = list()
-train_one_hot = list()
 train_probability_list = list()
-create_sentence_list(train_data, train_sentence_list)
-create_word_list(train_word_list, train_sentence_list)
+create_word_list(train_word_list, train_data)
 train_probability_list = create_probability_list(train_data, train_probability_list)
-
+'''
 #validation_data process
 validation_word_list = list()
-validation_sentence_list = list()
-validation_one_hot = list()
 validation_probability_list = list()
-create_sentence_list(validation_data, validation_sentence_list)
-create_word_list(validation_word_list, validation_sentence_list)
+create_word_list(validation_word_list, validation_data)
 validation_probability_list = create_probability_list(validation_data, validation_probability_list)
 
 #join word list
-word_list = train_word_list
-for word in validation_word_list:
-	if word not in word_list:
-		word_list.append(word)
-
-train_one_hot= create_one_hot(word_list, train_one_hot, train_sentence_list)
-validation_one_hot = create_one_hot(word_list, validation_one_hot, validation_sentence_list)
+word_list = join_word_list(train_word_list, validation_word_list)
+#create one-hot
+train_one_hot = create_one_hot(word_list, train_data)					#train_one-hot
+validation_one_hot = create_one_hot(word_list, validation_data) 	#validation_one-hot
 
 distance_list = list()
 calculate_distance(distance_list, validation_one_hot, train_one_hot)
@@ -127,42 +118,27 @@ max_corr = 0
 for i in range(1, 30):	#30可变，个人认为在数据集长度的算术平方以内
 	max_corr, best_k = get_best_k(max_corr, best_k, i)
 print(max_corr, best_k)
-
 '''
-#############################################
-#接下来的部分用于对test进行预测 可以将之前的注释掉，使用k=2直接开始测试
-#重新生成train的数据
-train_word_list = list()
-train_sentence_list = list()
-train_one_hot = list()
-train_probability_list = list()
-create_sentence_list(train_data, train_sentence_list)
-create_word_list(train_word_list, train_sentence_list)
-train_probability_list = create_probability_list(train_data, train_probability_list)
 
-test_data = pd.read_csv('lab1_data/regression_dataset/test_set.csv')
+#############################################
+#接下来的部分用于对test进行预测 可以将之前的注释掉，使用k=3直接开始测试
+
 #test_data process
 test_word_list = list()
-test_sentence_list = list()
-test_one_hot = list()
 test_probability_list = list()
-create_sentence_list(test_data, test_sentence_list)
-create_word_list(test_word_list, test_sentence_list)
+create_word_list(test_word_list, test_data)
 
 #join word list
-word_list = train_word_list
-for word in test_word_list:
-	if word not in word_list:
-		word_list.append(word)
-
-train_one_hot= create_one_hot(word_list, train_one_hot, train_sentence_list)
-test_one_hot = create_one_hot(word_list, test_one_hot, test_sentence_list)
+word_list = join_word_list(train_word_list, test_word_list)
+train_one_hot= create_one_hot(word_list, train_data)
+test_one_hot = create_one_hot(word_list, test_data)
 
 distance_list = list()
 calculate_distance(distance_list, test_one_hot, train_one_hot)
 
-#根据之前的计算知k=2时相关系数最高
+#根据之前的计算知k=3时相关系数最高
 #接下来的部分用于对test进行预测
+best_k = 3
 predict_probability_list = list()
 for test_index in range( len(distance_list) ):
 	index_list = np.argsort(distance_list[test_index])
@@ -171,4 +147,3 @@ for test_index in range( len(distance_list) ):
 
 result = pd.DataFrame(predict_probability_list)
 result.to_csv('16337334_zhouqiheng_KNN_regression.csv', index=list(range(len(predict_probability_list))), header=emotion_list)
-'''
