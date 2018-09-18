@@ -19,8 +19,7 @@ def create_one_hot(word_list, data):
 	for sentence in data['Words (split by space)']:
 		tmp_one_hot = np.zeros(word_list_len)
 		for word in sentence.split(' '):
-			if word in word_list:
-				tmp_one_hot[word_list.index(word)] += 1
+			tmp_one_hot[word_list.index(word)] = 1
 		one_hot.append(tmp_one_hot)
 	return np.array(one_hot)
 
@@ -46,9 +45,9 @@ def get(index_list, validation_index, accuracy_list, k):
 	label_dict = {}
 	for i in range(0, k):
 		if train_data['label'][index_list[i]] not in label_dict:
-			label_dict[train_data['label'][index_list[i]]] = 1
+			label_dict[train_data['label'][index_list[i]]] = float(1/(distance_list[validation_index][index_list[i]] + 0.001))
 		else:
-			label_dict[train_data['label'][index_list[i]]] += 1
+			label_dict[train_data['label'][index_list[i]]] += float(1/(distance_list[validation_index][index_list[i]] + 0.001))
 	#predict via K value
 	prediction = max(label_dict,key=label_dict.get)
 	correct_answer = validation_data['label'][validation_index]
@@ -71,7 +70,7 @@ def predict(index_list, validation_index, k):
 #train_data process
 train_word_list = list()
 create_word_list(train_word_list, train_data)
-'''
+
 #validation_data process
 validation_word_list = list()
 create_word_list(validation_word_list, validation_data)
@@ -105,7 +104,8 @@ total = len(distance_list)
 accuracy_list = [float(i)/total for i in accuracy_list]
 best_k = accuracy_list.index(max(accuracy_list))
 print(best_k)
-print(accuracy_list)
+print(max(accuracy_list))
+
 '''
 #由计算得到best_k = 12
 #make prediction for test 可将前面的注释掉
@@ -132,3 +132,4 @@ for test_index in range( len(distance_list) ):
 
 result = pd.DataFrame({'Words (split by space)':test_data['Words (split by space)'], 'label': prediction})
 result.to_csv('16337334_zhouqiheng_KNN_classification.csv', index=list(range(len(prediction))))
+'''

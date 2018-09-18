@@ -28,8 +28,7 @@ def create_one_hot(word_list, data):
 	for sentence in data['Words (split by space)']:
 		tmp_one_hot = np.zeros(word_list_len)
 		for word in sentence.split(' '):
-			if word in word_list:
-				tmp_one_hot[word_list.index(word)] = 1
+			tmp_one_hot[word_list.index(word)] = 1
 		one_hot.append(tmp_one_hot)
 	return np.array(one_hot)
 
@@ -85,6 +84,7 @@ def get_best_k(min_corr, best_k, k):
 		best_k = k
 	return min_corr, best_k
 
+
 #计算最优的k
 #############################################
 #KNN regression
@@ -95,7 +95,7 @@ train_word_list = list()
 train_probability_list = list()
 create_word_list(train_word_list, train_data)
 train_probability_list = create_probability_list(train_data, train_probability_list)
-'''
+
 #validation_data process
 validation_word_list = list()
 validation_probability_list = list()
@@ -147,3 +147,4 @@ for test_index in range( len(distance_list) ):
 
 result = pd.DataFrame(predict_probability_list)
 result.to_csv('16337334_zhouqiheng_KNN_regression.csv', index=list(range(len(predict_probability_list))), header=emotion_list)
+'''
