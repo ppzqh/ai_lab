@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 
 f = open('lab1_data/semeval.txt')
 #word_dict = dict()
@@ -45,20 +44,25 @@ for sentence in sentence_list:
 TF = np.array(one_hot)
 IDF = np.array(word_count)
 #get IDF
-IDF = np.log( sentence_list_len/(IDF+1) )
+IDF = np.log2( sentence_list_len/(IDF+1) )
 TF_IDF = TF * IDF
 
 result = list()
-#去除零
+
 for row_index in range(len(TF_IDF)):
 	tmp = list()
-	for i in range(len(TF_IDF[row_index])):
-		if TF_IDF[row_index][i] != 0:
-			tmp.append(TF_IDF[row_index][i])
+	for i in range(len(sentence_list[row_index])):
+		#按顺序找到序号
+		appear_index = word_list.index(sentence_list[row_index][i])
+		tmp.append(TF_IDF[row_index][appear_index])
 	result.append(tmp)
 
-result = pd.DataFrame(result)
-result.to_csv('TFIDF.csv', index=range(len(TF_IDF)))
-
-
+output = open('16337334_zhouqiheng_TFIDF.txt', 'w')
+for i in result:
+	tmp_str = str(i);
+	tmp_str = tmp_str.rstrip(']')
+	tmp_str = tmp_str.lstrip('[')
+	output.write(tmp_str)
+	output.write('\n')
+output.close()
 
