@@ -5,23 +5,25 @@ import collections
 
 #define node
 class Node:
-    def __init__(self, feature=None, value=None, decision=None):
+    def __init__(self, feature=None, value=None, decision=None, value_list=None):
         self.feature = feature
         #表示在一个feature类中选择哪一个特定的特征
         self.value = value
         #decision = 1预测为真
         self.decision = decision
         self.children_list = list()
+        #储存该节点属性对应的取值集合
+        self.value_list = value_list
 
     def print_child_list(self):
-        if self.value != None:
-            print('value:',self.value, 'choice:', self.decision)
         for child in self.children_list:
             child.print_child_list()
+        if self.value != None:
+            print('value:',self.value, 'choice:', self.decision)
 
 class Tree:
-    def __init__(self, root):
-        self.root = root
+    def __init__(self):
+        self.root = Node()
 
     def add_node(self, tmp_root, previous_feature):
         #new_child = Node(feature)
@@ -30,16 +32,18 @@ class Tree:
             #在这里进行运算，找到最佳的特征
             min_h, index, choice_list = get_best(previous_feature)
             print(min_h)
-            #储存一列中所有的value
-            value_list = collections.Counter(list(train_data[index]))
-            value_list = list(value_list.keys())
+            if tmp_root.feature == None:
+                #储存一列中所有的value
+                value_list = collections.Counter(list(train_data[index]))
+                value_list = list(value_list.keys())
+                tmp_root.value_list = value_list
+                tmp_root.feature = index
 
-            for value_index in range(len(value_list)):
-                tmp_root.children_list.append(Node(index, value_list[value_index], choice_list[value_index]))
-            tmp_root.feature = index
+            for value_index in range(len(tmp_root.value_list)):
+                tmp_root.children_list.append(Node(value=tmp_root.value_list[value_index], decision=choice_list[value_index]))
         else:
             for index in range(len(tmp_root.children_list)):
-                previous_feature.append( (tmp_root.children_list[index].feature, tmp_root.children_list[index].value) )
+                previous_feature.append( (tmp_root.feature, tmp_root.children_list[index].value) )
                 self.add_node(tmp_root.children_list[index], previous_feature)
                 #回溯
                 previous_feature.pop()
@@ -123,10 +127,11 @@ def get_best(previous_feature):
     return min_h, best_index, best_choice_list
 
 #index是选择的特征
-root = Node()
-my_tree = Tree(root)
-my_tree.add_node(root, [])
-my_tree.add_node(root, [])
+
+my_tree = Tree()
+#之后需要解决分类边界的问题
+my_tree.add_node(my_tree.root, [])
+my_tree.add_node(my_tree.root, [])
 my_tree.print_tree()
 
 
