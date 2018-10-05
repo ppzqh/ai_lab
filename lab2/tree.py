@@ -26,18 +26,19 @@ class Tree:
     def __init__(self):
         self.root = Node()
 
-    def add_node(self, train_data, feature_num, tmp_root, previous_feature):
+    def add_node(self, all_finished, train_data, feature_num, tmp_root, previous_feature, previous):
         #若terminate为0，说明已经分完了，终止
         if tmp_root.terminate == True:
             return
         #找到叶子
         if len(tmp_root.children_list) == 0:
             #在这里进行运算，找到最佳的特征
-            min_h, index, choice_list = get_best(train_data, feature_num, previous_feature)
+            min_h, index, choice_list = get_best(train_data, feature_num, previous_feature, previous)
             #将terminate标志为true
             if min_h == 0:
                 tmp_root.terminate = True
-
+                all_finished |= previous_feature
+                
             if tmp_root.feature == None:
                 #储存一列中所有的value
                 tmp_root.value_list = list(collections.Counter(list(train_data[index])).keys())
@@ -45,21 +46,34 @@ class Tree:
 
             for value_index in range(len(tmp_root.value_list)):
                 tmp_root.children_list.append(Node(value=tmp_root.value_list[value_index], decision=choice_list[value_index]))
+        
         else:
             if tmp_root.decision == -1:
                 return
+
             for index in range(len(tmp_root.children_list)):
+                '''
                 previous_feature.append( (tmp_root.feature, tmp_root.children_list[index].value) )
                 self.add_node(train_data, feature_num, tmp_root.children_list[index], previous_feature)
                 #回溯
                 previous_feature.pop()
-
+                '''
+                previous.append(tmp_root.feature)
+                self.add_node(all_finished, train_data, feature_num, tmp_root.children_list[index], previous_feature & set(train_data[train_data[tmp_root.feature] == tmp_root.children_list[index].value].index), previous)
+                previous.pop()
+                
     def train(self, train_data):
         feature_num = train_data.shape[1] - 1
         #加上列索引
         train_data = train_data.reindex(columns = range(feature_num + 1))
+        all_finished = set()
+        #两种终止条件，速度好像差不多
+        '''
         for i in range(feature_num):
-            self.add_node(train_data, feature_num, self.root, [])
+            self.add_node(all_finished, train_data, feature_num, self.root, set(range(len(train_data))), [])
+        '''
+        while(len(all_finished) < len(train_data)):
+            self.add_node(all_finished, train_data, feature_num, self.root, set(range(len(train_data))), [])
 
     def predict_one(self, tmp_root, to_predict, decision_index, result, choice):
         if len(tmp_root.children_list) == 0:
@@ -105,7 +119,7 @@ def H(probability):
     if probability == 1 or probability == 0:
         return 0
     return (-1 * probability * math.log(probability, 2)) - (1 - probability) * math.log(1 - probability, 2)
-
+'''
 def join_previous_feature(train_data, previous_feature, value, feature_index):
     if len(previous_feature) >= 1:
         tmp = train_data[previous_feature[0][0]] == previous_feature[0][1]
@@ -115,7 +129,7 @@ def join_previous_feature(train_data, previous_feature, value, feature_index):
         return tmp
     else: 
         return train_data[feature_index] == value
-
+'''
 #在这里加入别的计算方法
 def get_h(train_data, feature_index, min_h, best_index, best_choice_list, previous_feature, feature_num):
     feature_h = 0
@@ -124,7 +138,9 @@ def get_h(train_data, feature_index, min_h, best_index, best_choice_list, previo
     for value in value_count.keys():
         #计算特征为当前value时，结果为1的总数
         #index_list = train_data[(train_data[feature_index] == value)].index
-        index_list = train_data[join_previous_feature(train_data, previous_feature, value, feature_index)].index
+        #index_list = train_data[join_previous_feature(train_data, previous_feature, value, feature_index)].index
+        #index 使用set来获得
+        index_list = previous_feature & set(train_data[train_data[feature_index] == value].index)
         #如果没有该类别的元素，将选择置为-1，以便之后处理
         if len(index_list) == 0:
             choice_list.append(-1)
@@ -132,14 +148,26 @@ def get_h(train_data, feature_index, min_h, best_index, best_choice_list, previo
             #计算1的个数
         tmp_true_count = train_data[feature_num][index_list].sum()
             #取0，1中出现次数多的
-        choice_count = max(len(train_data[feature_num][index_list]) - tmp_true_count, tmp_true_count)
+        choice_count = max(len(index_list) - tmp_true_count, tmp_true_count)
         #True为1 False为0
         choice_list.append(choice_count == tmp_true_count)
         '''
         这里使用的是信息增益
         '''
-        tmp_probability = float( choice_count / value_count[value])
-        feature_h += float(value_count[value] / len(train_data)) * H(tmp_probability)
+        #之前的计算公式有错，进行了修改
+        tmp_probability = float( choice_count / len(index_list) )
+        feature_h += float(len(index_list) / len(previous_feature)) * H(tmp_probability)
+    '''
+    信息增益率
+    '''
+    splitinfo = 0
+    for i in value_count.keys():
+        tmp_probability = float(value_count[i])/len(data)
+        splitinfo += tmp_probability * math.log(tmp_probability, 2)
+    feature_h /= -1 * splitinfo
+    '''
+    CART
+    '''
     #判断当前的特征是否更佳
     if feature_h < min_h:
         best_choice_list = list(choice_list)
@@ -147,12 +175,16 @@ def get_h(train_data, feature_index, min_h, best_index, best_choice_list, previo
         best_index = feature_index
     return min_h, best_index, best_choice_list
 
-def get_best(train_data, feature_num, previous_feature):
+def get_best(train_data, feature_num, previous_feature, previous):
     best_choice_list = list()
     min_h = 10
     best_index = None
     for feature_index in range(feature_num):
+        '''
         if feature_index not in [previous_index[0] for previous_index in previous_feature]: #提取其中的元组的第一个元素
+            min_h, best_index, best_choice_list = get_h(train_data, feature_index, min_h, best_index, best_choice_list, previous_feature, feature_num)
+        '''
+        if feature_index not in [previous_index for previous_index in previous]:
             min_h, best_index, best_choice_list = get_h(train_data, feature_index, min_h, best_index, best_choice_list, previous_feature, feature_num)
     return min_h, best_index, best_choice_list
 
@@ -169,11 +201,13 @@ import pandas as pd
 data = pd.read_csv('/Users/pp/pp_git/ai_lab/lab2/lab2_data/Car_train.csv', header=None) #header=None表示没有列索引
 train_data = data.head( int(len(data)/2) )
 validation_data = data.tail( int(len(data)/2) ).reset_index(drop=True)
+
 count = [0]
 
 my_tree = Tree()
 my_tree.train(train_data)
-#my_tree.print_tree()
+
+
 #find_leaf(my_tree.root)
 result = my_tree.fit(validation_data, 'train')
 print(result[0]/len(validation_data))
